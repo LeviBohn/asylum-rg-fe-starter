@@ -10,11 +10,19 @@ import YearLimitsSelect from './YearLimitsSelect';
 import ViewSelect from './ViewSelect';
 import axios from 'axios';
 import { resetVisualizationQuery } from '../../../state/actionCreators';
-import test_data from '../../../data/test_data.json';
+// import test_data from '../../../data/test_data.json';
 import { colors } from '../../../styles/data_vis_colors';
 import ScrollToTopOnMount from '../../../utils/scrollToTopOnMount';
 
 const { background_color } = colors;
+
+//////////////////////////////////////////////
+const API_BASE_URL = 'https://hrf-asylum-be-b.herokuapp.com/cases';  // this line added by Levi to define base URL
+const ENDPOINTS = {                                                 // this line added by Levi to define endpoints for hte API
+  fiscal: '/fiscalSummary',
+  citizenship: '/citizenshipSummary'
+};
+//////////////////////////////////////////////
 
 function GraphWrapper(props) {
   const { set_view, dispatch } = props;
@@ -50,7 +58,17 @@ function GraphWrapper(props) {
         break;
     }
   }
-  function updateStateWithNewData(years, view, office, stateSettingCallback) {
+
+  async function updateStateWithNewData(years, view, office, stateSettingCallback) {
+    const params = {
+      from: years[0],
+      to: years[1]
+    };
+
+    if (office && office !== 'all') {
+      params.office = office;
+    }
+
     /*
           _                                                                             _
         |                                                                                 |
@@ -73,39 +91,19 @@ function GraphWrapper(props) {
     
     */
 
-    if (office === 'all' || !office) {
-      axios
-        .get(process.env.REACT_APP_API_URI, {
-          // mock URL, can be simply replaced by `${Real_Production_URL}/summary` in prod!
-          params: {
-            from: years[0],
-            to: years[1],
-          },
-        })
-        .then(result => {
-          stateSettingCallback(view, office, test_data); // <-- `test_data` here can be simply replaced by `result.data` in prod!
-        })
-        .catch(err => {
-          console.error(err);
-        });
-    } else {
-      axios
-        .get(process.env.REACT_APP_API_URI, {
-          // mock URL, can be simply replaced by `${Real_Production_URL}/summary` in prod!
-          params: {
-            from: years[0],
-            to: years[1],
-            office: office,
-          },
-        })
-        .then(result => {
-          stateSettingCallback(view, office, test_data); // <-- `test_data` here can be simply replaced by `result.data` in prod!
-        })
-        .catch(err => {
-          console.error(err);
-        });
+    try {
+      const fiscalResponse = await axios.get(`${API_BASE_URL}${ENDPOINTS.fiscal}`, { params });
+      const citizenshipResponse = await axios.get(`${API_BASE_URL}${ENDPOINTS.citizenship}`, { params });
+      const fiscalData = fiscalResponse.data;
+      const citizenshipData = citizenshipResponse.data;
+      const combinedData = { ...fiscalData, citizenshipResults: citizenshipData };
+
+      stateSettingCallback(view, office, [combinedData]); // <-- `test_data` here can be simply replaced by `result.data` in prod!
+    } catch (error) {
+      console.error("Error fetching data from API:", error);
     }
   }
+
   const clearQuery = (view, office) => {
     dispatch(resetVisualizationQuery(view, office));
   };
@@ -119,7 +117,7 @@ function GraphWrapper(props) {
         minHeight: '50px',
         backgroundColor: background_color,
       }}
-    >
+    >z
       <ScrollToTopOnMount />
       {map_to_render}
       <div
