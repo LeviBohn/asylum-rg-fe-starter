@@ -18,7 +18,7 @@ const { background_color } = colors;
 
 //////////////////////////////////////////////
 const API_BASE_URL = 'https://hrf-asylum-be-b.herokuapp.com/cases';  // this line added by Levi to define base URL
-const ENDPOINTS = {                                                 // this line added by Levi to define endpoints for hte API
+const ENDPOINTS = {                                                 // this line added by Levi to define endpoints for the API
   fiscal: '/fiscalSummary',
   citizenship: '/citizenshipSummary'
 };
